@@ -39,9 +39,36 @@ namespace Common
                    .AsEnumerable();
         }
 
+        public IEnumerable<TEntity> FindByProperty(Expression<Func<TEntity, bool>> filter = null, Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
+             string includeProperties = "",int? take = null, bool tracking = true)
+        {
+            IQueryable<TEntity> query = _dbContext.Set<TEntity>(); 
+            IEnumerable<TEntity> result;
+
+            if (filter != null)
+            {
+                query = !tracking ? query.Where(filter).AsNoTracking() : query.Where(filter);
+            }
+
+            query = includeProperties.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Aggregate(query, (current, includeProperty) => current.Include(includeProperty));
+
+
+            if (take.HasValue)
+            {
+                result = orderBy != null ? orderBy(query).Take(take.Value).ToList() : query.Take(take.Value).ToList();
+            }
+            else
+            {
+                result = orderBy != null ? orderBy(query).ToList() : query.ToList();
+            }
+
+            return result; 
+
+        }
+
         #endregion
 
-        #region CRUD
+        #region CUD
 
         public void Add(TEntity entity)
         {
